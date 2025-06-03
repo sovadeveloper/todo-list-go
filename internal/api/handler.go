@@ -3,13 +3,16 @@ package api
 import (
 	"encoding/json"
 	"github.com/go-chi/chi/v5"
+	"log"
 	"net/http"
 	"strconv"
+	"todo-list/internal/cache"
 	"todo-list/internal/task"
 )
 
 type Handler struct {
-	Repo *task.Repository
+	Repo  *task.Repository
+	Cache *cache.TaskCache
 }
 
 func (h *Handler) Routes() http.Handler {
@@ -22,7 +25,7 @@ func (h *Handler) Routes() http.Handler {
 }
 
 func (h *Handler) ListTasks(w http.ResponseWriter, r *http.Request) {
-	tasks, err := h.Repo.List()
+	tasks, err := h.Cache.Get()
 	if err != nil {
 		http.Error(w, "failed to fetch tasks", http.StatusInternalServerError)
 		return
@@ -45,6 +48,7 @@ func (h *Handler) AddTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to add task", http.StatusInternalServerError)
 		return
 	}
+	h.updateCache()
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -59,6 +63,7 @@ func (h *Handler) CompleteTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to complete task", http.StatusInternalServerError)
 		return
 	}
+	h.updateCache()
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -73,5 +78,14 @@ func (h *Handler) DeleteTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to delete task", http.StatusInternalServerError)
 		return
 	}
+	h.updateCache()
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) updateCache() {
+	if tasks, err := h.Repo.List(); err == nil {
+		h.Cache.Set(tasks)
+	} else {
+		log.Printf("failed to update cache: %v", err)
+	}
 }
