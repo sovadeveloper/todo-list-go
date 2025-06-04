@@ -1,6 +1,9 @@
 package task
 
-import "github.com/jmoiron/sqlx"
+import (
+	"github.com/jmoiron/sqlx"
+	"log"
+)
 
 type Repository struct {
 	db *sqlx.DB
@@ -16,6 +19,7 @@ func (repo *Repository) Add(title string) error {
 }
 
 func (repo *Repository) List() ([]Task, error) {
+	log.Println("Go in DB get tasks")
 	var tasks []Task
 	err := repo.db.Select(&tasks, "SELECT * FROM tasks")
 	return tasks, err
